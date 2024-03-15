@@ -1,0 +1,15 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: Tung13579
+    url: jdbc:sqlserver://localhost:1433;database=project1
+  jpa:
+    database: sql_server
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.SQLServerDialect
