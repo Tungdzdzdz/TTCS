@@ -23,6 +23,4 @@ public class UserDTO {
     @NotBlank(message = "Email is not blank")
     @Email(message = "The email is not correct format")
     private String email;
-
-    private Integer roleId;
 }

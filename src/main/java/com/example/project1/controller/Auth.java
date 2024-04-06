@@ -11,6 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,5 +76,17 @@ public class Auth {
             errorList.add(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
             return ResponseEntity.badRequest().body(errorList);
         }
+    }
+
+    @GetMapping()
+    public ResponseEntity<?> getPlayerData() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://api.football-data.org/v4/competitions/PL/teams"))
+                .header("X-Auth-Token", "01886b5d92b94c078d04655828071abf")
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return ResponseEntity.ok(response.body());
     }
 }

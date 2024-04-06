@@ -34,7 +34,7 @@ public class UserService implements IUserService{
             throw new NotIdenticalPasswordException("The password is not identical");
         }
         Role role = roleRepository
-                .findById(userDTO.getRoleId())
+                .findById(1)
                 .orElseThrow(() -> new DataNotFoundException("The role is not found!"));
         User user = User
                 .builder()

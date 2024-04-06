@@ -6,7 +6,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: sa
     password: Tung13579
-    url: jdbc:sqlserver://localhost:1433;database=project1
+    url: jdbc:sqlserver://localhost:1433;database=league
   jpa:
     database: sql_server
     properties:

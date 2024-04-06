@@ -27,8 +27,10 @@ public class WebSecurityConfig {
                     authorizationManagerRequestMatcherRegistry
                             .requestMatchers("/api/v1/auth/**")
                             .permitAll()
+                            .requestMatchers("/api/v1/demo")
+                            .hasRole("ADMIN")
                             .anyRequest()
-                            .authenticated();
+                            .permitAll();
                 });
         return http.build();
     }
