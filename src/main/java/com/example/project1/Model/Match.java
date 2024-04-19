@@ -21,4 +21,7 @@ public class Match {
     @ManyToOne
     private Formation awayFormation;
     private LocalDateTime matchDate;
+    private int week;
+    @ManyToOne
+    private Season season;
 }

@@ -8,16 +8,15 @@ import com.example.project1.Model.Role;
 import com.example.project1.Model.User;
 import com.example.project1.repository.RoleRepository;
 import com.example.project1.repository.UserRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,13 +47,28 @@ public class UserService implements IUserService{
     }
     @Override
     public String login(UserLogin userLogin) throws Exception {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        userLogin.getUsername(),
-                        userLogin.getPassword()
-                )
-        );
         User user = userRepository.findByUsername(userLogin.getUsername()).orElseThrow(() -> new DataNotFoundException("User is not found!"));
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                    userLogin.getUsername(),
+                    userLogin.getPassword()
+            )
+        );
+        return jwtService.generateToken(user);
+    }
+    @Override
+    public String loginAdmin(UserLogin userLogin) throws Exception {
+        User user = userRepository.findByUsername(userLogin.getUsername()).orElseThrow(() -> new DataNotFoundException("User is not found!"));
+        if(user.getRole().getId() != 2)
+        {
+            throw new UsernameNotFoundException("User is not admin");
+        }
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                    userLogin.getUsername(),
+                    userLogin.getPassword()
+            )
+        );
         return jwtService.generateToken(user);
     }
 }

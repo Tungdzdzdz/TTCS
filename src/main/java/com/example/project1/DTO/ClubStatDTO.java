@@ -18,4 +18,8 @@ public class ClubStatDTO {
     private int point;
     private int rank;
     private int matchNumber;
+    private int offside;
+    private int saves;
+    private int foul;
+    private int shot;
 }

@@ -16,11 +16,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ClubStatService implements IClubStatService
-{
+public class ClubStatService implements IClubStatService {
     private final ClubStatRepository clubStatRepository;
     private final ClubRepository clubRepository;
     private final SeasonRepository seasonRepository;
+
     @Override
     public void createClubStat(ClubStatDTO clubStatDTO) throws DataNotFoundException {
         Club club = clubRepository
@@ -29,7 +29,7 @@ public class ClubStatService implements IClubStatService
         Season season = seasonRepository
                 .findById(clubStatDTO.getSeasonId())
                 .orElseThrow(() -> new DataNotFoundException("Season not found"));
-        ClubStat clubStat =convertFromClubStatDTO(clubStatDTO);
+        ClubStat clubStat = convertFromClubStatDTO(clubStatDTO);
         clubStat.setClub(club);
         clubStat.setSeason(season);
         clubStatRepository.save(clubStat);
@@ -40,12 +40,15 @@ public class ClubStatService implements IClubStatService
         Season season = seasonRepository
                 .findByStartSeasonWithYearOfStartSeasonEqualsStartYear(startSeasonYear)
                 .orElseThrow(() -> new DataNotFoundException("Season not found"));
-        return clubStatRepository.findBySeasonId(season.getId());
+        return clubStatRepository.findBySeason(season);
     }
 
     @Override
     public List<ClubStat> getClubStatsBySeasonId(int seasonId) throws DataNotFoundException {
-        return clubStatRepository.findBySeasonId(seasonId);
+        Season season = seasonRepository
+                .findById(seasonId)
+                .orElseThrow(() -> new DataNotFoundException("Season not found"));
+        return clubStatRepository.findBySeason(season);
     }
 
     @Override
@@ -60,8 +63,7 @@ public class ClubStatService implements IClubStatService
                 .orElseThrow(() -> new DataNotFoundException("Club stat not found"));
     }
 
-    private ClubStat convertFromClubStatDTO(ClubStatDTO clubStatDTO)
-    {
+    private ClubStat convertFromClubStatDTO(ClubStatDTO clubStatDTO) {
         return ClubStat.builder()
                 .draw(clubStatDTO.getDraw())
                 .lose(clubStatDTO.getLose())
@@ -74,6 +76,18 @@ public class ClubStatService implements IClubStatService
                 .point(clubStatDTO.getPoint())
                 .rank(clubStatDTO.getRank())
                 .matchNumber(clubStatDTO.getMatchNumber())
+                .offside(clubStatDTO.getOffside())
+                .foul(clubStatDTO.getFoul())
+                .saves(clubStatDTO.getSaves())
+                .shot(clubStatDTO.getShot())
                 .build();
+    }
+
+    @Override
+    public List<ClubStat> getTableBySeason(int seasonId) throws DataNotFoundException {
+        Season season = seasonRepository
+                .findById(seasonId)
+                .orElseThrow(() -> new DataNotFoundException("Season not found"));
+        return clubStatRepository.findBySeasonOrderByRank(season);
     }
 }

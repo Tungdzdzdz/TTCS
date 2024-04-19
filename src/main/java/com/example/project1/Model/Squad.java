@@ -1,9 +1,11 @@
 package com.example.project1.Model;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 @Entity
 @Table(name = "squads")
+@Data
 public class Squad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,4 +17,5 @@ public class Squad {
     @ManyToOne
     private ClubStat clubStat;
     private boolean type;
+    private boolean inField;
 }

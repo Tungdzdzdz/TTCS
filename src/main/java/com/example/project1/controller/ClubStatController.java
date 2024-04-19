@@ -24,7 +24,7 @@ public class ClubStatController {
         }
     }
 
-    @GetMapping("/{clubId}")
+    @GetMapping("/club/{clubId}")
     public ResponseEntity<?> getClubStat(
             @PathVariable(name = "clubId") int clubId,
             @RequestParam(name = "seasonId") int seasonId
@@ -42,6 +42,18 @@ public class ClubStatController {
     ) {
         try {
             return ResponseEntity.ok().body(clubStatService.getClubStatsBySeasonId(seasonId));
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+        }
+    }
+
+    @GetMapping("/table/{seasonId}")
+    public ResponseEntity<?> getTableBySeason(
+        @PathVariable(name = "seasonId") int seasonId
+    )
+    {
+        try {
+            return ResponseEntity.ok().body(clubStatService.getTableBySeason(seasonId));
         } catch (DataNotFoundException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }

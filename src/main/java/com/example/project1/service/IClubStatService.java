@@ -11,4 +11,5 @@ public interface IClubStatService {
     List<ClubStat> getClubStatsByStartSeasonYear(int startSeasonYear) throws DataNotFoundException;
     List<ClubStat> getClubStatsBySeasonId(int seasonId) throws DataNotFoundException;
     ClubStat getClubStat(int clubId, int seasonId) throws DataNotFoundException;
+    List<ClubStat> getTableBySeason(int seasonId) throws DataNotFoundException;
 }

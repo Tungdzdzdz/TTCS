@@ -7,20 +7,26 @@ import com.example.project1.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PlayerStatService implements IPlayerStatService{
+public class PlayerStatService implements IPlayerStatService {
     private final PlayerStatRepository playerStatRepository;
     private final PlayerRepository playerRepository;
     private final ClubRepository clubRepository;
     private final SeasonRepository seasonRepository;
     private final PositionRepository positionRepository;
+    private final SquadRepository squadRepository;
+    private final MatchRepository matchRepository;
+    private final MatchDetailRepository matchDetailRepository;
+    private final EventRepository eventRepository;
+
     @Override
     public void createPlayerStats(List<PlayerStatDTO> playerStatDTOList) throws DataNotFoundException {
-        for(PlayerStatDTO x : playerStatDTOList)
-        {
+        for (PlayerStatDTO x : playerStatDTOList) {
             playerStatRepository.save(toPlayerStat(x));
         }
     }
@@ -34,7 +40,8 @@ public class PlayerStatService implements IPlayerStatService{
     }
 
     @Override
-    public List<PlayerStat> getAllPlayerStatsByClubIdAndSeasonId(int clubId, int seasonId) throws DataNotFoundException {
+    public List<PlayerStat> getAllPlayerStatsByClubIdAndSeasonId(int clubId, int seasonId)
+            throws DataNotFoundException {
         Club club = clubRepository
                 .findById(clubId)
                 .orElseThrow(() -> new DataNotFoundException("Club not found"));
@@ -81,6 +88,35 @@ public class PlayerStatService implements IPlayerStatService{
                 .yellowCard(playerStatDTO.getYellowCard())
                 .cleanSheet(playerStatDTO.getCleanSheet())
                 .position(position)
+                .saves(playerStatDTO.getSaves())
+                .shot(playerStatDTO.getShot())
+                .offside(playerStatDTO.getOffside())
+                .foul(playerStatDTO.getFoul())
                 .build();
     }
+
+    @Override
+    public List<Integer> getStatMatch(int playerStatId) throws DataNotFoundException {
+        List<Long> matches = squadRepository.findAppearanceMatchByPlayerStat(playerStatId, true);
+        Event goalEvent = eventRepository.findById(1).orElseThrow(() -> new DataNotFoundException("Event not found"));
+        List<Integer> stats = new ArrayList<>(Arrays.asList(0, 0, 0));
+        for(Long x : matches) {
+            Match match = matchRepository.findById(x).orElseThrow(() -> new DataNotFoundException("Match not found"));
+            int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getHomeClubStat());
+            int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getAwayClubStat());
+            if(homeGoal > awayGoal)
+                stats.set(0, stats.get(0) + 1);
+            else if(homeGoal < awayGoal)
+                stats.set(1, stats.get(1) + 1);
+            else
+                stats.set(2, stats.get(2) + 1);
+        }
+        System.out.println(stats.size());
+        return stats;
+    }
+
+    @Override
+    public PlayerStat getRandomPlayerStatBySeason(int seasonId) throws DataNotFoundException {
+        return playerStatRepository.findRandomPlayerStatBySeasonId(seasonId);
+    }        
 }

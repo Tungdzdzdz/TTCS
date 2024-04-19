@@ -1,5 +1,6 @@
 package com.example.project1.controller;
 
+import com.example.project1.Response.ErrorResponse;
 import com.example.project1.service.SeasonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,5 +18,14 @@ public class SeasonController {
     @GetMapping("")
     public ResponseEntity<?> getAllSeasons() {
         return ResponseEntity.ok().body(seasonService.getAllSeasons());
+    }
+    
+    @GetMapping("/currentweek")
+    public ResponseEntity<?> getCurrentWeek() {
+        try {
+            return ResponseEntity.ok().body(seasonService.getCurrentWeek());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+        }
     }
 }

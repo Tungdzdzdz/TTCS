@@ -16,16 +16,16 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/auth")
 @CrossOrigin("http://localhost:5173")
 @RequiredArgsConstructor
 public class Auth {
     private final UserService userService;
-    @PostMapping("register")
+    @PostMapping("api/v1/auth/register")
     public ResponseEntity<?> register(
             @Valid @RequestBody UserDTO userDTO,
             BindingResult bindingResult
@@ -51,7 +51,7 @@ public class Auth {
             return ResponseEntity.badRequest().body(errorList);
         }
     }
-    @PostMapping("login")
+    @PostMapping("api/v1/auth/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody UserLogin userLogin,
             BindingResult bindingResult
@@ -77,16 +77,31 @@ public class Auth {
             return ResponseEntity.badRequest().body(errorList);
         }
     }
-
-    @GetMapping()
-    public ResponseEntity<?> getPlayerData() throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://api.football-data.org/v4/competitions/PL/teams"))
-                .header("X-Auth-Token", "01886b5d92b94c078d04655828071abf")
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return ResponseEntity.ok(response.body());
+    
+    @PostMapping("api/v1/auth/login/admin")
+    public ResponseEntity<?> loginAdmin(
+            @Valid @RequestBody UserLogin userLogin,
+            BindingResult bindingResult
+    )
+    {
+        try{
+            if(bindingResult.hasErrors())
+            {
+                List<ErrorResponse> errorList = bindingResult
+                        .getFieldErrors()
+                        .stream()
+                        .map(fieldError -> new ErrorResponse(fieldError.getField(), fieldError.getDefaultMessage()))
+                        .toList();
+                return ResponseEntity.badRequest().body(errorList);
+            }
+            Token token = new Token(userService.login(userLogin));
+            return ResponseEntity.ok(token);
+        }
+        catch (Exception e)
+        {
+            List<ErrorResponse> errorList = new ArrayList<>();
+            errorList.add(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+            return ResponseEntity.badRequest().body(errorList);
+        }
     }
 }

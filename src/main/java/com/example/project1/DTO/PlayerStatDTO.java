@@ -17,4 +17,8 @@ public class PlayerStatDTO {
     private int redCard;
     private int appearance;
     private int numberJersey;
+    private int shot;
+    private int saves;
+    private int foul;
+    private int offside;
 }

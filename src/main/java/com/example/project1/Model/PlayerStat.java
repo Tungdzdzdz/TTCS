@@ -31,4 +31,8 @@ public class PlayerStat {
     private int yellowCard;
     private int redCard;
     private int numberJersey;
+    private int shot;
+    private int foul;
+    private int saves;
+    private int offside;
 }

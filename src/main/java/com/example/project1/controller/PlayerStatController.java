@@ -52,4 +52,28 @@ public class PlayerStatController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }
     }
+
+    @GetMapping("/resultStat/{playerStatId}")
+    public ResponseEntity<?> getPlayerStat(
+            @PathVariable(name = "playerStatId") int playerStatId
+    )
+    {
+        try {
+            return ResponseEntity.ok().body(playerStatService.getStatMatch(playerStatId));
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+        }
+    }
+
+    @GetMapping("/random")
+    public ResponseEntity<?> getRandomPlayerStat(
+            @RequestParam(name = "seasonId") int seasonId
+    )
+    {
+        try {
+            return ResponseEntity.ok().body(playerStatService.getRandomPlayerStatBySeason(seasonId));
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+        }
+    }
 }
