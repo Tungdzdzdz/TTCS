@@ -1,5 +1,9 @@
 package com.example.project1.Model;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +24,7 @@ public class ClubStat {
     private Club club;
     @ManyToOne
     private Season season;
+
     private int goalTaken;
     private int goalReceived;
     private int cleanSheet;
@@ -35,4 +40,23 @@ public class ClubStat {
     private int saves;
     private int shot;
     private int foul;
+
+    public void setDefault()
+    {
+        this.cleanSheet = 0;
+        this.draw = 0;
+        this.foul = 0;
+        this.goalReceived = 0;
+        this.goalTaken = 0;
+        this.lose = 0;
+        this.matchNumber = 0;
+        this.offside = 0;
+        this.point = 0;
+        this.rank = 0;
+        this.redCard = 0;
+        this.saves = 0;
+        this.shot = 0;
+        this.win = 0;
+        this.yellowCard = 0;
+    }
 }

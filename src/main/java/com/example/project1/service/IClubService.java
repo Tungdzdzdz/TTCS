@@ -10,4 +10,6 @@ public interface IClubService {
     void createClub(ClubDTO clubDTO) throws Exception;
     List<Club> getAllClubs();
     Club getClubById(int clubId) throws DataNotFoundException;
+    void updateClub(ClubDTO clubDTO) throws DataNotFoundException;
+    void deleteClub(Integer clubId) throws DataNotFoundException;
 }

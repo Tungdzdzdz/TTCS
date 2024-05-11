@@ -11,11 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +94,18 @@ public class Auth {
         }
         catch (Exception e)
         {
+            List<ErrorResponse> errorList = new ArrayList<>();
+            errorList.add(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+            return ResponseEntity.badRequest().body(errorList);
+        }
+    }
+
+    @GetMapping("api/v1/auth/me")
+    public ResponseEntity<?> me(Principal principal)
+    {
+        try {
+            return ResponseEntity.ok(userService.getUserByUsername(principal.getName()));
+        } catch (Exception e) {
             List<ErrorResponse> errorList = new ArrayList<>();
             errorList.add(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
             return ResponseEntity.badRequest().body(errorList);

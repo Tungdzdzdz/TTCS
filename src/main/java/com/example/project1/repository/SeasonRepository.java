@@ -15,4 +15,5 @@ public interface SeasonRepository extends JpaRepository<Season, Integer> {
     Optional<Season> findByStartSeasonWithYearOfStartSeasonEqualsStartYear(@Param("year") int year);
     List<Season> findAll();
     Optional<Season> findById(int id);
+    Season findFirstByOrderByIdDesc();
 }

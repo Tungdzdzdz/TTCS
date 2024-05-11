@@ -76,4 +76,13 @@ public class PlayerStatController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }
     }
+
+    @GetMapping("/players/{clubId}/{seasonId}")
+    public ResponseEntity<?> getListPlayerByClubAndSeason(
+        @PathVariable(name = "clubId") int clubId,
+        @PathVariable(name = "seasonId") int seasonId
+    ) throws DataNotFoundException
+    {
+        return ResponseEntity.ok().body(playerStatService.getAllPlayerStatsByClubIdAndSeasonId(clubId, seasonId));
+    }
 }

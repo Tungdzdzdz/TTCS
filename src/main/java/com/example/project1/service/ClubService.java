@@ -18,19 +18,7 @@ public class ClubService implements IClubService{
     private final LocationRepository locationRepository;
     @Override
     public void createClub(ClubDTO clubDTO) throws Exception {
-        Location location = locationRepository
-                .findByName(clubDTO.getLocationName())
-                .orElseThrow(() -> new DataNotFoundException("The location is not found!"));
-        Club club = Club
-                .builder()
-                .name(clubDTO.getName())
-                .logo(clubDTO.getLogo())
-                .shortName(clubDTO.getShortName())
-                .stadiumName(clubDTO.getStadiumName())
-                .founded(clubDTO.getFounded())
-                .build();
-        club.setLocation(location);
-        clubRepository.save(club);
+        clubRepository.save(mapper(clubDTO));
     }
 
     @Override
@@ -43,5 +31,41 @@ public class ClubService implements IClubService{
         return clubRepository
                 .findById(clubId)
                 .orElseThrow(() -> new DataNotFoundException("Club not found"));
+    }
+
+    @Override
+    public void updateClub(ClubDTO clubDTO) throws DataNotFoundException {
+        Club club = clubRepository
+                .findById(clubDTO.getId())
+                .orElseThrow(() -> new DataNotFoundException("Club not found"));
+        club.setName(clubDTO.getName());
+        club.setLogo(clubDTO.getLogo());
+        club.setShortName(clubDTO.getShortName());
+        club.setStadiumName(clubDTO.getStadiumName());
+        club.setFounded(clubDTO.getFounded());
+        club.setLocation(locationRepository
+                .findById(clubDTO.getLocation())
+                .orElseThrow(() -> new DataNotFoundException("Location not found")));
+        clubRepository.save(club);
+    }
+
+    private Club mapper(ClubDTO clubDTO) throws DataNotFoundException {
+        Location location = locationRepository
+                .findById(clubDTO.getLocation())
+                .orElseThrow(() -> new DataNotFoundException("The location is not found!"));
+        return Club
+                .builder()
+                .name(clubDTO.getName())
+                .logo(clubDTO.getLogo())
+                .shortName(clubDTO.getShortName())
+                .stadiumName(clubDTO.getStadiumName())
+                .founded(clubDTO.getFounded())
+                .location(location)
+                .build();
+    }
+
+    @Override
+    public void deleteClub(Integer clubId) throws DataNotFoundException {
+        clubRepository.deleteById(clubId);
     }
 }

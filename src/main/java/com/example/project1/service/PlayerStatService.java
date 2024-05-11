@@ -42,13 +42,9 @@ public class PlayerStatService implements IPlayerStatService {
     @Override
     public List<PlayerStat> getAllPlayerStatsByClubIdAndSeasonId(int clubId, int seasonId)
             throws DataNotFoundException {
-        Club club = clubRepository
-                .findById(clubId)
-                .orElseThrow(() -> new DataNotFoundException("Club not found"));
-        Season season = seasonRepository
-                .findById(seasonId)
-                .orElseThrow(() -> new DataNotFoundException("Season not found"));
-        return playerStatRepository.findPlayerStatByClubAndSeason(club, season);
+        if(!clubRepository.existsById(clubId) || !seasonRepository.existsById(seasonId))
+                throw new DataNotFoundException("Club or Season not found");
+        return playerStatRepository.findByClubAndSeason(clubId, seasonId);
     }
 
     public PlayerStat getPlayerStat(int playerId, int seasonId) throws DataNotFoundException {
@@ -118,5 +114,29 @@ public class PlayerStatService implements IPlayerStatService {
     @Override
     public PlayerStat getRandomPlayerStatBySeason(int seasonId) throws DataNotFoundException {
         return playerStatRepository.findRandomPlayerStatBySeasonId(seasonId);
-    }        
+    }
+
+    @Override
+    public void createPlayerStat(Player player, Club club, Season season, Position position, Integer number) throws DataNotFoundException {
+        PlayerStat playerStat = new PlayerStat();
+        playerStat.setPlayer(player);
+        playerStat.setClub(club);
+        playerStat.setSeason(season);
+        playerStat.setPosition(position);
+        playerStat.setNumberJersey(number);
+        playerStat.setDefault();
+        playerStatRepository.save(playerStat);
+    }
+
+    @Override
+    public void updatePlayerStat(PlayerStat playerStat) throws DataNotFoundException {
+        if (playerStatRepository.existsById(playerStat.getId())) {
+            playerStatRepository.save(playerStat);
+        }
+    }
+
+    @Override
+    public void deletePlayerStat(Integer playerStatId) throws DataNotFoundException {
+        playerStatRepository.deleteById(playerStatId);
+    }       
 }

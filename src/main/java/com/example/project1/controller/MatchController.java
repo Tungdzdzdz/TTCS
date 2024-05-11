@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.project1.DTO.MatchDetailDTO;
+import com.example.project1.Exception.DataNotFoundException;
 import com.example.project1.Response.ErrorResponse;
 import com.example.project1.service.MatchService;
 
@@ -29,10 +30,8 @@ public class MatchController {
     @GetMapping
     public ResponseEntity<?> getMatchByWeek(
         @RequestParam("matchweek") int matchweek,
-        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId,
-        Principal principal
+        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId
     ) {
-        System.out.println(principal.getName());
         try {
             return ResponseEntity.ok(matchService.getMatchByWeek(matchweek, seasonId));
         } catch (Exception e) {
@@ -42,41 +41,29 @@ public class MatchController {
 
     @GetMapping("/next")
     public ResponseEntity<?> getNextMatch(
-        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId
+        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId, 
+        @RequestParam(name = "limit", required = false, defaultValue = "5") int limit
     ) {
         try {
-            return ResponseEntity.ok(matchService.getNextMatchBySeason(seasonId));
+            return ResponseEntity.ok(matchService.getNextMatchBySeason(seasonId, limit));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/create/squad/auto")
-    public ResponseEntity<?> createMatchDetailSquad(
-        @RequestBody MatchDetailDTO matchDetailDTO
-    ) 
-    {
-        try {
-            matchService.autoPickSquadMatch(matchDetailDTO.getHomeClubStatId(), matchDetailDTO.getMatchId());
-            matchService.autoPickSquadMatch(matchDetailDTO.getAwayClubStatId(), matchDetailDTO.getMatchId());
-            return ResponseEntity.ok("Match detail created successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @GetMapping("/result")
-    public ResponseEntity<?> getResultMatch(
-        @RequestParam("matchweek") int matchweek,
-        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId
-    )
-    {
-        try {
-            return ResponseEntity.ok(matchService.getResultMatchByWeekAndSeason(matchweek, seasonId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
+    // @PostMapping("/create/squad/auto")
+    // public ResponseEntity<?> createMatchDetailSquad(
+    //     @RequestBody MatchDetailDTO matchDetailDTO
+    // ) 
+    // {
+    //     try {
+    //         matchService.autoPickSquadMatch(matchDetailDTO.getHomeClubStatId(), matchDetailDTO.getMatchId());
+    //         matchService.autoPickSquadMatch(matchDetailDTO.getAwayClubStatId(), matchDetailDTO.getMatchId());
+    //         return ResponseEntity.ok("Match detail created successfully");
+    //     } catch (Exception e) {
+    //         return ResponseEntity.badRequest().body(e.getMessage());
+    //     }
+    // }
 
     @GetMapping("/result/last")
     public ResponseEntity<?> getLastResultMatch(
@@ -92,11 +79,10 @@ public class MatchController {
 
     @GetMapping("/fixture/club/{clubStatId}")
     public ResponseEntity<?> getFixtureByClubStat(
-        @PathVariable(name = "clubStatId") Integer clubStatId,
-        @RequestParam(name = "limit", required = false, defaultValue = "5") Integer limit
+        @PathVariable(name = "clubStatId") Integer clubStatId
     ){
         try {
-            return ResponseEntity.ok(matchService.getNextMatchByClubStat(clubStatId, limit));
+            return ResponseEntity.ok(matchService.getNextMatchByClubStat(clubStatId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }

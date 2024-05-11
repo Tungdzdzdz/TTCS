@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -17,8 +18,10 @@ public class Match {
     @ManyToOne
     private ClubStat awayClubStat;
     @ManyToOne
+    @JoinColumn(name = "home_formation_id")
     private Formation homeFormation;
     @ManyToOne
+    @JoinColumn(name = "away_formation_id")
     private Formation awayFormation;
     private LocalDateTime matchDate;
     private int week;

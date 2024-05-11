@@ -5,13 +5,8 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 public class MatchDetailDTO {
-    // private int matchId;
-    // private int eventId;
-    // private int playerStatId;
-    // private int clubStatId;
-    // private int eventTime;
-
-    private int homeClubStatId;
-    private int awayClubStatId;
-    private long matchId;
+    private int type;
+    private int playerStat;
+    private int clubStat;
+    private int minute;
 }

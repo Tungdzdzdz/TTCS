@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.project1.DTO.MatchDetailDTO;
+import com.example.project1.Model.Club;
 import com.example.project1.Model.ClubStat;
 import com.example.project1.Model.Event;
 import com.example.project1.Model.Match;
@@ -13,6 +14,7 @@ import com.example.project1.Model.MatchDetail;
 import com.example.project1.Model.PlayerStat;
 import com.example.project1.Model.Season;
 import com.example.project1.Model.Squad;
+import com.example.project1.Response.Statistics;
 import com.example.project1.repository.ClubStatRepository;
 import com.example.project1.repository.EventRepository;
 import com.example.project1.repository.MatchDetailRepository;
@@ -35,68 +37,19 @@ public class MatchDetailService implements IMatchDetailService {
     private final SeasonRepository seasonRepository;
 
     @Override
-    public void createMatchDetail(MatchDetailDTO matchDetailDTO) {
-        int numEvent = (int) (Math.random() * 40) + 1;
-        ClubStat homeClubStat = clubStatRepository.findById(matchDetailDTO.getHomeClubStatId()).get();
-        ClubStat awayClubStat = clubStatRepository.findById(matchDetailDTO.getAwayClubStatId()).get();
-        ClubStat[] clubs = { homeClubStat, awayClubStat };
-        Match match = matchRepository.findById(matchDetailDTO.getMatchId()).get();
-        for (int i = 0; i < numEvent; i++) {
-            int club = (int) (Math.random() * 2);
-            int eventId = (int) (Math.random() * 12) + 1;
-            int eventTime = (int) (Math.random() * 90) + 1;
-            if (eventId == 8) {
-                eventId = 1;
-            } else if (eventId == 6) {
-                eventId = 7;
-            } else if (eventId == 10) {
-                eventId = 9;
-            }
-            else if(eventId == 4 || eventId == 5)
-                continue;
-            Event event = eventRepository.findById(eventId).get();
-            Squad squad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 1) % 2].getId(), true);
-            switch (eventId) {
-                case 1:
-                    matchDetailRepository.save(createNewEventMatch(squad.getPlayerStat(), clubs[club], event, match, eventTime));
-                    int assist = (int) (Math.random() * 2);
-                    if (assist == 1) {
-                        Squad assistSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 1) % 2].getId(), true);
-                        while (assistSquad.equals(squad)) {
-                            assistSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 1) % 2].getId(), true);
-                        }
-                        matchDetailRepository.save(
-                                createNewEventMatch(assistSquad.getPlayerStat(), clubs[(club + 1) % 2], eventRepository.findById(8).get(), match, eventTime));
-                    }
-                    break;
-                case 7:
-                    matchDetailRepository.save(createNewEventMatch(squad.getPlayerStat(), clubs[club], event, match, eventTime));
-                    Squad inSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 1) % 2].getId(), false);
-                    while (inSquad.equals(squad)) {
-                        inSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 1) % 2].getId(), false);
-                    }
-                    matchDetailRepository.save(
-                            createNewEventMatch(inSquad.getPlayerStat(), clubs[(club + 1) % 2], eventRepository.findById(6).get(), match, eventTime));
-                    break;
-                case 9:
-                    matchDetailRepository.save(createNewEventMatch(squad.getPlayerStat(), clubs[(club+1)%2], event, match, eventTime));
-                    int save = (int) (Math.random() * 2);
-                    if (save == 1) {
-                        Squad saveSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 2) % 2].getId(), true);
-                        while (!saveSquad.getPlayerStat().getPosition().getShortName().equals("GK")) {
-                            saveSquad = squadRepository.findOneRandomByClubStatAndInField(clubs[(club + 2) % 2].getId(), true);
-                        }
-                        matchDetailRepository.save(
-                                createNewEventMatch(saveSquad.getPlayerStat(), clubs[(club + 2) % 2], eventRepository.findById(10).get(), match, eventTime));
-                    }
-                    break;
-                default:
-                    matchDetailRepository.save(createNewEventMatch(squad.getPlayerStat(), clubs[(club+1)%2], event, match, eventTime));
-                    break;
-            }
+    public void createMatchDetail(Long matchId, MatchDetailDTO matchDetailDTO) {
+        Match match = matchRepository.findById(matchId).get();
+        Event event = eventRepository.findById(matchDetailDTO.getType()).get();
+        if(event.getName().equals("Full-Time") || event.getName().equals("Half-Time"))
+        {
+            MatchDetail matchDetail = createNewEventMatch(null, null, event, match, matchDetailDTO.getMinute());
+            matchDetailRepository.save(matchDetail);
+            return;
         }
-        matchDetailRepository.save(createNewEventMatch(null, null, eventRepository.findById(4).get(), match, 45)); 
-        matchDetailRepository.save(createNewEventMatch(null, null, eventRepository.findById(5).get(), match, 90)); 
+        PlayerStat playerStat = playerStatRepository.findById(matchDetailDTO.getPlayerStat()).get();
+        ClubStat clubStat = clubStatRepository.findById(matchDetailDTO.getClubStat()).get();
+        MatchDetail matchDetail = createNewEventMatch(playerStat, clubStat, event, match, matchDetailDTO.getMinute());
+        matchDetailRepository.save(matchDetail);
     }
 
     private MatchDetail createNewEventMatch(PlayerStat playerStat, ClubStat clubStat, Event event, Match match, int eventTime) {
@@ -160,4 +113,67 @@ public class MatchDetailService implements IMatchDetailService {
         }
         return results;
     }
+
+    @Override
+    public String getResultByMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId).get();
+        Event goalEvent = eventRepository.findById(1).get();
+        int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getHomeClubStat());
+        int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getAwayClubStat());
+        String result = homeGoal + " - " + awayGoal;
+        return result;
+    }
+
+    @Override
+    public List<MatchDetail> getMatchDetailByMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId).get();
+        return matchDetailRepository.findByMatchOrderByEventTimeAsc(match);
+    }
+
+    @Override
+    public Statistics getStatisticByMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId).get();
+        ClubStat homeClubStat = match.getHomeClubStat();
+        ClubStat awayClubStat = match.getAwayClubStat();
+
+        Statistics statistics = new Statistics();
+
+        List<Integer> yellowCard = new ArrayList<>();
+        List<Integer> redCard = new ArrayList<>();
+        List<Integer> offside = new ArrayList<>();
+        List<Integer> saves = new ArrayList<>();
+        List<Integer> shot = new ArrayList<>();
+        List<Integer> foul = new ArrayList<>();
+
+        int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Goal"), homeClubStat);
+        int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Goal"), awayClubStat);
+
+        shot.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Shot"), homeClubStat) + homeGoal);
+        shot.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Shot"), awayClubStat) + awayGoal);
+
+        yellowCard.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Yellow Card"), homeClubStat));
+        yellowCard.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Yellow Card"), awayClubStat));
+
+        redCard.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Red Card"), homeClubStat));
+        redCard.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Red Card"), awayClubStat));
+
+        offside.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Offside"), homeClubStat));
+        offside.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Offside"), awayClubStat));
+
+        saves.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Save"), homeClubStat));
+        saves.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Save"), awayClubStat));
+
+        foul.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Foul"), homeClubStat));
+        foul.add(matchDetailRepository.countByMatchAndEventAndClubStat(match, eventRepository.findByName("Foul"), awayClubStat));
+
+        statistics.setYellowCard(yellowCard);
+        statistics.setRedCard(redCard);
+        statistics.setOffside(offside);
+        statistics.setSaves(saves);
+        statistics.setShot(shot);
+        statistics.setFoul(foul);
+
+        return statistics;
+    }
+
 }

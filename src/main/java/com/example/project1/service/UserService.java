@@ -10,6 +10,8 @@ import com.example.project1.repository.RoleRepository;
 import com.example.project1.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,7 +35,7 @@ public class UserService implements IUserService{
             throw new NotIdenticalPasswordException("The password is not identical");
         }
         Role role = roleRepository
-                .findById(1)
+                .findById(userDTO.getRoleId() == null ? 1 : userDTO.getRoleId())
                 .orElseThrow(() -> new DataNotFoundException("The role is not found!"));
         User user = User
                 .builder()
@@ -70,5 +72,26 @@ public class UserService implements IUserService{
             )
         );
         return jwtService.generateToken(user);
+    }
+    @Override
+    public List<User> getAllUsers() throws DataNotFoundException {
+        return userRepository.findAll();
+    }
+    @Override
+    public void updateUser(UserDTO userDTO) throws DataNotFoundException {
+        User user = userRepository.findById(userDTO.getId()).orElseThrow(() -> new DataNotFoundException("User is not found!"));
+        user.setEmail(userDTO.getEmail());
+        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        user.setUsername(userDTO.getUsername());
+        user.setRole(roleRepository.findById(userDTO.getRoleId()).orElseThrow(() -> new DataNotFoundException("Role is not found!")));
+        userRepository.save(user);
+    }
+    @Override
+    public void deleteUser(Integer id) throws DataNotFoundException {
+        userRepository.deleteById(id);
+    }
+    @Override
+    public User getUserByUsername(String username) throws DataNotFoundException {
+        return userRepository.findByUsername(username).orElseThrow(() -> new DataNotFoundException("User is not found!"));
     }
 }

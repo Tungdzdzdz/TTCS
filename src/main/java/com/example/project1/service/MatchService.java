@@ -1,6 +1,11 @@
 package com.example.project1.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.stereotype.Service;
 
@@ -27,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class MatchService implements IMatchService{
+public class MatchService implements IMatchService {
     private final MatchRepository matchRepository;
     private final ClubStatRepository clubStatRepository;
     private final ClubRepository clubRepository;
@@ -36,6 +41,7 @@ public class MatchService implements IMatchService{
     private final SquadRepository squadRepository;
     private final PlayerStatRepository playerStatRepository;
     private final MatchDetailRepository matchDetailRepository;
+
     @Override
     public void createMatch(MatchDTO matchDTO) throws DataNotFoundException {
         Match match = convertFromMatchDTO(matchDTO);
@@ -44,76 +50,62 @@ public class MatchService implements IMatchService{
 
     private Match convertFromMatchDTO(MatchDTO matchDTO) throws DataNotFoundException {
         Club homeClub = clubRepository
-                        .findByName(matchDTO.getHomeClubId())
-                        .orElseThrow(() -> new DataNotFoundException("Club is not found!"));
+                .findById(matchDTO.getHomeClubStatId())
+                .orElseThrow(() -> new DataNotFoundException("Club is not found!"));
         Club awayClub = clubRepository
-                        .findByName(matchDTO.getAwayClubId())
-                        .orElseThrow(() -> new DataNotFoundException("Club is not found!"));
+                .findById(matchDTO.getAwayClubStatId())
+                .orElseThrow(() -> new DataNotFoundException("Club is not found!"));
         Season season = seasonRepository
-                        .findById(matchDTO.getSeasonId())
-                        .orElseThrow(() -> new DataNotFoundException("Season is not found!"));
+                .findById(matchDTO.getSeasonId())
+                .orElseThrow(() -> new DataNotFoundException("Season is not found!"));
         ClubStat homeClubStat = clubStatRepository
-                                .findByClubAndSeason(homeClub, season)
-                                .orElseThrow(() -> new DataNotFoundException("Club stat is not found!"));
+                .findByClubAndSeason(homeClub, season)
+                .orElseThrow(() -> new DataNotFoundException("Club stat is not found!"));
         ClubStat awayClubStat = clubStatRepository
-                                .findByClubAndSeason(awayClub, season)
-                                .orElseThrow(() -> new DataNotFoundException("Club stat is not found!"));
+                .findByClubAndSeason(awayClub, season)
+                .orElseThrow(() -> new DataNotFoundException("Club stat is not found!"));
         Formation homeFormation = formationRepository
-                                .findById(matchDTO.getHomeFormationId())
-                                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
+                .findById(matchDTO.getHomeFormation())
+                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
         Formation awayFormation = formationRepository
-                                .findById(matchDTO.getAwayFormationId())
-                                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
+                .findById(matchDTO.getAwayFormation())
+                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
         Match match = new Match();
         match.setHomeClubStat(homeClubStat);
         match.setAwayClubStat(awayClubStat);
         match.setHomeFormation(homeFormation);
         match.setAwayFormation(awayFormation);
-        match.setMatchDate(matchDTO.getMatchDate());
+        LocalDateTime matchDateTime = LocalDateTime.of(matchDTO.getDate(), matchDTO.getTime());
+        match.setMatchDate(matchDateTime);
+        match.setSeason(season);
         return match;
     }
 
     @Override
-    public void updateMatchWeek() {
-        for(int i = 0; i < 38; i++)
-        {
-            for(int j = 1; j<=10; j++)
-            {
-                int matchId = i*10+j;
-                if(matchId >= 300)
-                {
-                    matchId += 1;
-                }
-                Match match = matchRepository.findById((long) matchId).orElseThrow(null);
-                match.setWeek(i+1);
-                matchRepository.save(match);
-            }
-        }
-    }
-
-    @Override
     public List<Match> getMatchByWeek(int matchweek, int seasonId) throws DataNotFoundException {
-        Season season = seasonRepository.findById(seasonId).orElseThrow(() -> new DataNotFoundException("Season is not found!"));
+        Season season = seasonRepository.findById(seasonId)
+                .orElseThrow(() -> new DataNotFoundException("Season is not found!"));
         return matchRepository.findMatchByWeekAndSeasonOrderByMatchDate(matchweek, season);
     }
 
     @Override
     public void autoPickSquadMatch(int clubStatId, long matchId) throws DataNotFoundException {
-        ClubStat clubStat = clubStatRepository.findById(clubStatId).orElseThrow(() -> new DataNotFoundException("Club Stat is not found!"));
-        Match match = matchRepository.findById(matchId).orElseThrow(() -> new DataNotFoundException("Match is not found!"));
+        ClubStat clubStat = clubStatRepository.findById(clubStatId)
+                .orElseThrow(() -> new DataNotFoundException("Club Stat is not found!"));
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new DataNotFoundException("Match is not found!"));
         PlayerStat goalKeeperPlayer = playerStatRepository.findRandomGoalkeeper(clubStat.getClub().getId());
         squadRepository.save(createSquad(goalKeeperPlayer, clubStat, match, true));
-        List<PlayerStat> playerStats = playerStatRepository.findRandomOutfieldPlayer(goalKeeperPlayer.getPlayer().getId(), clubStat.getClub().getId());
-        for(int i = 0; i < 10; i++)
-        {
+        List<PlayerStat> playerStats = playerStatRepository
+                .findRandomOutfieldPlayer(goalKeeperPlayer.getPlayer().getId(), clubStat.getClub().getId());
+        for (int i = 0; i < 10; i++) {
             squadRepository.save(createSquad(playerStats.get(i), clubStat, match, true));
         }
-        for(int i = 10; i < 20; i++)
-        {
+        for (int i = 10; i < 20; i++) {
             squadRepository.save(createSquad(playerStats.get(i), clubStat, match, false));
         }
     }
-    
+
     private Squad createSquad(PlayerStat playerStat, ClubStat clubStat, Match match, boolean type) {
         Squad squad = new Squad();
         squad.setPlayerStat(playerStat);
@@ -124,34 +116,116 @@ public class MatchService implements IMatchService{
     }
 
     @Override
-    public List<Match> getResultMatchByWeekAndSeason(int matchweek, int seasonId) throws DataNotFoundException {
-        Season season = seasonRepository.findById(seasonId).orElseThrow(() -> new DataNotFoundException("Season is not found!"));
-        List<Match> matches = matchRepository.findMatchByWeekAndSeasonOrderByMatchDate(matchweek, season);
-        for(Match match : matches)
-        {
-            if(!matchDetailRepository.existsByMatch(match))
-                matches.remove(match);
-        }
+    public List<Match> getNextMatchBySeason(int seasonId, int limit) throws DataNotFoundException {
+        List<Match> matches = matchRepository.findNextMatch(limit, seasonId);
         return matches;
     }
 
     @Override
-    public List<Match> getNextMatchBySeason(int seasonId) throws DataNotFoundException {
-        return matchRepository.findNextMatch(5, seasonId);
-    }
-
-    @Override
     public List<Match> getLastResultMatch(int seasonId) throws DataNotFoundException {
-        return matchRepository.findLastResultMatch(5, seasonId);    
+        return matchRepository.findLastResultMatch(5, seasonId);
     }
 
     @Override
-    public List<Match> getNextMatchByClubStat(int clubStatId, int limit) throws DataNotFoundException {
-        return matchRepository.findNextMatchByClubStat(clubStatId, limit);
+    public List<Match> getNextMatchByClubStat(int clubStatId) throws DataNotFoundException {
+        List<Match> matches = matchRepository.findNextMatchByClubStat(clubStatId);
+        for(Match x : matches)
+            System.out.println(x.getHomeClubStat().getId() + " " + x.getAwayClubStat().getId());
+        return matches;
     }
 
     @Override
     public List<Match> getResultMatchByClubStat(int clubStatId, int limit) throws DataNotFoundException {
         return matchRepository.findLastResultMatchByClubStat(clubStatId, limit);
+    }
+
+    @Override
+    public void updateMatchTime(MatchDTO matchDTO) throws DataNotFoundException {
+        Match match = matchRepository.findById(matchDTO.getId())
+                .orElseThrow(() -> new DataNotFoundException("Match is not found!"));
+        LocalDateTime matchDateTime = LocalDateTime.of(matchDTO.getDate(), matchDTO.getTime());
+        System.out.println(matchDTO.getAwayFormation());
+        System.out.println(matchDTO.getHomeFormation());
+        Formation homeFormation = formationRepository.findById(matchDTO.getHomeFormation())
+                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
+        Formation awayFormation = formationRepository.findById(matchDTO.getAwayFormation())
+                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
+        match.setMatchDate(matchDateTime);
+        match.setHomeFormation(homeFormation);
+        match.setAwayFormation(awayFormation);
+        matchRepository.save(match);
+    }
+
+    @Override
+    public void createFixtures(List<ClubStat> clubStats, Season season) throws DataNotFoundException {
+        LocalDate date = season.getStartSeason();
+        Formation formation = formationRepository.findById(1)
+                .orElseThrow(() -> new DataNotFoundException("Formation is not found!"));
+        Random random = new Random();
+        LocalDate[] dates = {
+                date,
+                date.plusDays(1),
+                date.plusDays(2),
+                date.minusDays(1),
+                date.minusDays(2)
+        };
+        LocalTime[] localTimes = {
+                LocalTime.of(14, 0),
+                LocalTime.of(16, 0),
+                LocalTime.of(18, 0),
+                LocalTime.of(20, 0),
+        };
+        List<LocalDateTime> matchDates = new ArrayList<>();
+        for (LocalDate d : dates) {
+            for (LocalTime t : localTimes) {
+                matchDates.add(LocalDateTime.of(d, t));
+            }
+        }
+        for (int i = 0; i < clubStats.size() - 1; i++) {
+            for (int j = 0; j < clubStats.size()/2; j++) {
+                createFixture(
+                        clubStats.get(j),
+                        clubStats.get(clubStats.size() - 1 - j),
+                        formation,
+                        formation,
+                        season,
+                        matchDates.get(random.nextInt(20)).plusDays((i) * 7), i + 1);
+                createFixture(
+                        clubStats.get(clubStats.size() - 1 - j),
+                        clubStats.get(j),
+                        formation,
+                        formation,
+                        season,
+                        matchDates.get(random.nextInt(20)).plusDays((i+clubStats.size()-1) * 7), (i + 1) + clubStats.size() - 1);
+            }
+            ClubStat temp = clubStats.get(1);
+            clubStats.remove(1);
+            clubStats.add(temp);
+        }
+    }
+
+    @Override
+    public void createFixture(ClubStat home, ClubStat away, Formation homeFormation, Formation awayFormation,
+            Season season, LocalDateTime matchDate, Integer week) throws DataNotFoundException {
+        Match match = new Match();
+        match.setHomeClubStat(home);
+        match.setAwayClubStat(away);
+        match.setHomeFormation(homeFormation);
+        match.setAwayFormation(awayFormation);
+        match.setMatchDate(matchDate);
+        match.setSeason(season);
+        match.setWeek(week);
+        matchRepository.save(match);
+    }
+
+    @Override
+    public void deleteFixtures(List<ClubStat> clubStats, Season season) throws DataNotFoundException {
+        for(ClubStat x : clubStats)
+        {
+            List<Match> matches = matchRepository.findByHomeClubStatAndSeason(x, season);
+            if(matches == null)
+                continue;
+            matchRepository.deleteAll(matches);
+        }
     }
 }

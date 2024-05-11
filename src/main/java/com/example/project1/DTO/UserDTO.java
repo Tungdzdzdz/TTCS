@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserDTO {
+    private Integer id;
+    
     @Size(min = 8, message = "Username must be at least 8 character!")
     private String username;
 
@@ -23,4 +25,6 @@ public class UserDTO {
     @NotBlank(message = "Email is not blank")
     @Email(message = "The email is not correct format")
     private String email;
+
+    private Integer roleId;
 }

@@ -4,10 +4,13 @@ import org.apache.catalina.connector.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.project1.Exception.DataNotFoundException;
 import com.example.project1.Response.ErrorResponse;
 import com.example.project1.service.ClubCoachService;
 import com.example.project1.service.CoachService;
@@ -20,12 +23,24 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CoachController {
     private final ClubCoachService clubCoachService;
-    @GetMapping()
-    public ResponseEntity<?> getAllCoach(
-        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId
+    private final CoachService coachService;
+    @GetMapping("/seasonId")
+    public ResponseEntity<?> getCoachBySeason(
+        @PathVariable(name = "seasonId") int seasonId
     ) {
         try {
             return ResponseEntity.ok().body(clubCoachService.getClubCoachBySeason(seasonId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
+        }
+    }
+
+    @GetMapping()
+    public ResponseEntity<?> getAllCoach(
+    )
+    {
+        try {
+            return ResponseEntity.ok().body(coachService.getAllCoach());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }
@@ -41,5 +56,13 @@ public class CoachController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }
+    }
+
+    @GetMapping("/clubCoach/{clubId}/{seasonId}")
+    public ResponseEntity<?> createClubCoach(
+        @PathVariable Integer seasonId,
+        @PathVariable Integer clubId
+    ) throws DataNotFoundException {
+        return ResponseEntity.ok().body(clubCoachService.getCoachByClubAndSeason(clubId, seasonId));
     }
 }

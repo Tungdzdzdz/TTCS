@@ -9,7 +9,7 @@ import lombok.Data;
 public class Squad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
     @ManyToOne
     private Match match;
     @ManyToOne

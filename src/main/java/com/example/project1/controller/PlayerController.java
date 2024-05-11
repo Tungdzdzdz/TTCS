@@ -15,15 +15,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PlayerController {
     private final PlayerService playerService;
-    @PostMapping("/create")
-    public ResponseEntity<?> createPlayer(
-            @RequestBody List<PlayerDTO> playerDTOList
-            ) {
-        try {
-            playerService.createPlayers(playerDTOList);
-            return ResponseEntity.ok("Player created");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @GetMapping
+    public ResponseEntity<?> getAllPlayers()
+    {
+        return ResponseEntity.ok().body(playerService.getAllPlayers());
     }
 }

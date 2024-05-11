@@ -35,4 +35,18 @@ public class PlayerStat {
     private int foul;
     private int saves;
     private int offside;
+
+    public void setDefault()
+    {
+        this.appearance = 0;
+        this.goal = 0;
+        this.assist = 0;
+        this.cleanSheet = 0;
+        this.yellowCard = 0;
+        this.redCard = 0;
+        this.shot = 0;
+        this.foul = 0;
+        this.saves = 0;
+        this.offside = 0;
+    }
 }

@@ -14,7 +14,8 @@ import java.util.Optional;
 @Repository
 public interface PlayerStatRepository extends JpaRepository<PlayerStat, Integer> {
     List<PlayerStat> findPlayerStatBySeason(Season season);
-    List<PlayerStat> findPlayerStatByClubAndSeason(Club club, Season season);
+    @Query(nativeQuery = true, value = "SELECT * FROM player_stats WHERE club_id = ?1 AND season_id = ?2")
+    List<PlayerStat> findByClubAndSeason(Integer clubId, Integer seasonId);
     Optional<PlayerStat> findByPlayerAndSeason(Player player, Season season);    
     @Query(nativeQuery = true, value = "SELECT TOP 1 * FROM player_stats WHERE position_id = 1 AND club_id = ?1 ORDER BY NEWID()")
     PlayerStat findRandomGoalkeeper(int clubId);

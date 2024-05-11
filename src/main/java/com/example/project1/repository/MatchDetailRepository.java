@@ -14,8 +14,11 @@ import com.example.project1.Model.MatchDetail;
 
 @Repository
 public interface MatchDetailRepository extends JpaRepository<MatchDetail, Long>{
-    public int countByMatchAndEventAndClubStat(Match match, Event event, ClubStat clubStat);
-    public boolean existsByMatch(Match match);
+    int countByMatchAndEventAndClubStat(Match match, Event event, ClubStat clubStat);
+    boolean existsByMatch(Match match);
+
     @Query(nativeQuery = true, value = "SELECT TOP 1 * FROM match_details ORDER BY id DESC")
-    public Optional<MatchDetail> findLastMatchDetail();
+    Optional<MatchDetail> findLastMatchDetail();
+
+    List<MatchDetail> findByMatchOrderByEventTimeAsc(Match match);  
 }

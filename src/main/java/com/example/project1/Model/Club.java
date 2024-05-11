@@ -1,5 +1,9 @@
 package com.example.project1.Model;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,4 +27,12 @@ public class Club {
     private String founded;
     @ManyToOne
     private Location location;
+
+    @OneToMany(mappedBy = "club")
+    private List<PlayerStat> players;
+
+    @JsonIgnoreProperties({"club", "season"})
+    public List<PlayerStat> getPlayers() {
+        return players;
+    }
 }

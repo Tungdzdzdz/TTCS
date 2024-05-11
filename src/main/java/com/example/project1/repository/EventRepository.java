@@ -7,4 +7,5 @@ import com.example.project1.Model.Event;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Integer>{
+    Event findByName(String name);
 }

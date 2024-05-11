@@ -25,18 +25,6 @@ import lombok.RequiredArgsConstructor;
 @CrossOrigin(origins = "http://localhost:5173")
 public class MatchDetailController {
     private final MatchDetailService matchDetailService;
-    @PostMapping("/create")
-    public ResponseEntity<?> createMatchDetail(
-        @RequestBody MatchDetailDTO matchDetailDTO
-    ) 
-    {
-        try {
-            matchDetailService.createMatchDetail(matchDetailDTO);
-            return ResponseEntity.ok("send ok");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 
     @GetMapping("/result/{matchWeek}")
     public ResponseEntity<?> getAllResultByMatchWeek(
@@ -74,5 +62,29 @@ public class MatchDetailController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/result/match/{matchId}")
+    public ResponseEntity<?> getResultByMatch(
+        @PathVariable(name = "matchId") Long matchId
+    ) 
+    {
+        return ResponseEntity.ok(matchDetailService.getResultByMatch(matchId));
+    }
+
+    @GetMapping("/match/{matchId}")
+    public ResponseEntity<?> getMatchDetailByMatch(
+        @PathVariable(name = "matchId") Long matchId
+    ) 
+    {
+        return ResponseEntity.ok(matchDetailService.getMatchDetailByMatch(matchId));
+    }
+
+    @GetMapping("statistic/match/{matchId}")
+    public ResponseEntity<?> getMatchStatistic(
+        @PathVariable(name = "matchId") Long matchId
+    ) 
+    {
+        return ResponseEntity.ok(matchDetailService.getStatisticByMatch(matchId));
     }
 }
