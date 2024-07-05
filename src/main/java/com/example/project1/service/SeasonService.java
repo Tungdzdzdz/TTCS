@@ -21,6 +21,7 @@ import com.example.project1.repository.ClubRepository;
 import com.example.project1.repository.CoachRepository;
 import com.example.project1.repository.MatchDetailRepository;
 import com.example.project1.repository.MatchRepository;
+import com.example.project1.repository.PlayerStatRepository;
 import com.example.project1.repository.PositionRepository;
 import com.example.project1.repository.SeasonRepository;
 
@@ -28,7 +29,9 @@ import jakarta.persistence.criteria.CriteriaBuilder.In;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,7 +59,7 @@ public class SeasonService implements ISeasonService{
         List<Match> match = matchRepository.findNextMatch(1, seasonId);
         if(match.size() == 0)
         {
-            return 0;
+            return 1;
         }
         return match.get(0).getWeek();
     }
@@ -66,10 +69,9 @@ public class SeasonService implements ISeasonService{
     }
     @Override
     public void createSeason(SeasonDTO seasonDTO) throws Exception {
-        Season lastSeason = seasonRepository.findFirstByOrderByIdDesc();
-        if(lastSeason.getEndSeason().isAfter(seasonDTO.getStartSeason()))
+        if(checkValidSeason(seasonDTO.getStartSeason()))
         {
-            throw new Exception("The current season is not finished yet!");
+            throw new Exception("The last season has been not finished yet!");
         }
         Season season = new Season();
         season.setName(seasonDTO.getName());
@@ -108,108 +110,15 @@ public class SeasonService implements ISeasonService{
     }
     @Override
     public void updateSeason(SeasonDTO seasonDTO) throws Exception {
-        Season lastSeason = seasonRepository.findFirstByOrderByIdDesc();
-        if(lastSeason.getEndSeason().isAfter(seasonDTO.getStartSeason()))
-        {
-            throw new Exception("The current season is not finished yet!");
-        }
         Season season = seasonRepository.findById(seasonDTO.getId()).orElseThrow(() -> new DataNotFoundException("The season is not found!"));
-        List<ClubStat> preClubStats = season.getClubStats();
-        List<ClubCoach> preClubCoaches = season.getClubCoaches();   
-        matchService.deleteFixtures(preClubStats, season);
+        seasonRepository.delete(season);
+        createSeason(seasonDTO);
+    }
 
-        season.setName(seasonDTO.getName());
-        season.setSponsor(seasonDTO.getSponsor());
-        season.setStartSeason(seasonDTO.getStartSeason());
-        season.setEndSeason(seasonDTO.getEndSeason());
-        seasonRepository.save(season);
-        List<ClubStat> newClubStats = new ArrayList<>();
-        List<ClubCoach> newClubCoaches = new ArrayList<>();
-        for(int i = 0; i < seasonDTO.getClubs().size(); i++)
-        {
-            Integer clubId = seasonDTO.getClubs().get(i).getClub().getId();
-            boolean checkClubStat = true;
-            for(ClubStat clubStat : preClubStats)
-            {
-                if(clubStat.getClub().getId() == clubId)
-                {
-                    List<PlayerStat> prePlayerStats = clubStat.getClub().getPlayers();
-                    for(int j = 0; j < seasonDTO.getClubs().get(i).getPlayers().size(); j++)
-                    {
-                        Integer playerId = seasonDTO.getClubs().get(i).getPlayers().get(j).getId();
-                        int checkPlayerStat = -1;
-                        for(int k = 0; k < prePlayerStats.size(); k++)
-                        {
-                            PlayerStat playerStat = prePlayerStats.get(k);
-                            if(playerStat.getPlayer().getId() == playerId)
-                            {
-                                Integer positionId = seasonDTO.getClubs().get(i).getPositions().get(j).getId();
-                                Integer number = seasonDTO.getClubs().get(i).getNumberJersey().get(j);
-                                Position position = positionRepository.findById(positionId).orElseThrow(() -> new DataNotFoundException("The position is not found!"));
-                                playerStat.setPosition(position);
-                                playerStat.setNumberJersey(number);
-                                playerStatService.updatePlayerStat(playerStat);
-                                checkPlayerStat = k;
-                                break;
-                            }
-                        }
-                        if(checkPlayerStat == -1)
-                        {
-                            Player player = playerService.findPlayerById(playerId);
-                            Integer positionId = seasonDTO.getClubs().get(i).getPositions().get(j).getId();
-                            Position position = positionRepository.findById(positionId).orElseThrow(() -> new DataNotFoundException("The position is not found!"));
-                            Integer number = seasonDTO.getClubs().get(i).getNumberJersey().get(j);
-                            playerStatService.createPlayerStat(player, clubStat.getClub(), season, position, number);
-                        }
-                        else
-                            prePlayerStats.remove(checkPlayerStat);
-                    }
-                    for(PlayerStat playerStat : prePlayerStats)
-                    {
-                        playerStatService.deletePlayerStat(playerStat.getId());
-                    }
-                    checkClubStat = false;
-                    newClubStats.add(clubStat);
-                    break;
-                }
-            }
-            if(checkClubStat)
-            {
-                Club club = clubRepository.findById(clubId).orElseThrow(() -> new DataNotFoundException("The club is not found!"));
-                ClubStat newClubStat = clubStatService.createClubStat(club, season);
-                newClubStats.add(newClubStat);
-                for(int j = 0; j < seasonDTO.getClubs().get(i).getPlayers().size(); j++)
-                {
-                    Integer playerId = seasonDTO.getClubs().get(i).getPlayers().get(j).getId();
-                    Player player = playerService.findPlayerById(playerId);
-                    Integer positionId = seasonDTO.getClubs().get(i).getPositions().get(j).getId();
-                    Position position = positionRepository.findById(positionId).orElseThrow(() -> new DataNotFoundException("The position is not found!"));
-                    Integer number = seasonDTO.getClubs().get(i).getNumberJersey().get(j);
-                    playerStatService.createPlayerStat(player, club, season, position, number);
-                }
-            }
-            Coach coach = coachRepository.findById(seasonDTO.getClubs().get(i).getCoach().getId()).orElseThrow(() -> new DataNotFoundException("The coach is not found!"));
-            boolean checkClubCoach = true;
-            for(ClubCoach clubCoach : preClubCoaches)
-            {
-                if(clubCoach.getCoach().getId() == coach.getId())
-                {
-                    preClubCoaches.remove(clubCoach);
-                    newClubCoaches.add(clubCoach);
-                    checkClubCoach = false;
-                    break;
-                }
-            }
-            if(checkClubCoach)
-            {
-                ClubCoach clubCoach = new ClubCoach();
-                clubCoach.setClub(clubRepository.findById(clubId).orElseThrow(() -> new DataNotFoundException("The club is not found!")));
-                clubCoach.setCoach(coach);
-                clubCoach.setSeason(season);
-                clubCoachRepository.save(clubCoach);
-                newClubCoaches.add(clubCoach);
-            }
-        }
-        matchService.createFixtures(newClubStats, season);
+    private boolean checkValidSeason(LocalDate startDate)
+    {
+        if(seasonRepository.getByEndSeason(startDate).size() == 0)
+            return false;
+        return true;
     }
 }

@@ -1,6 +1,8 @@
 package com.example.project1.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -13,7 +15,6 @@ import com.example.project1.Model.Match;
 import com.example.project1.Model.MatchDetail;
 import com.example.project1.Model.PlayerStat;
 import com.example.project1.Model.Season;
-import com.example.project1.Model.Squad;
 import com.example.project1.Response.Statistics;
 import com.example.project1.repository.ClubStatRepository;
 import com.example.project1.repository.EventRepository;
@@ -37,19 +38,104 @@ public class MatchDetailService implements IMatchDetailService {
     private final SeasonRepository seasonRepository;
 
     @Override
-    public void createMatchDetail(Long matchId, MatchDetailDTO matchDetailDTO) {
+    public MatchDetail createMatchDetail(Long matchId, MatchDetailDTO matchDetailDTO) throws Exception {
         Match match = matchRepository.findById(matchId).get();
         Event event = eventRepository.findById(matchDetailDTO.getType()).get();
-        if(event.getName().equals("Full-Time") || event.getName().equals("Half-Time"))
+        if(event.getName().equals("Full-Time") || event.getName().equals("Half-Time") || event.getName().equals("Kick-Off"))
         {
+            if(matchDetailRepository.countByMatchAndEventAndClubStat(match, event, null) > 0)
+            {
+                throw new Exception("This event must be unique");
+            }
+            if(event.getName().equals("Full-Time"))
+            {
+                if(matchDetailRepository.countByMatchAndEventTimeGreaterThan(match, matchDetailDTO.getMinute()) > 0)
+                    throw new Exception("Can't add this event");
+                updateTable(null);
+            }
             MatchDetail matchDetail = createNewEventMatch(null, null, event, match, matchDetailDTO.getMinute());
-            matchDetailRepository.save(matchDetail);
-            return;
+            return matchDetailRepository.save(matchDetail);
         }
+
+        Event fullTimeEvent = eventRepository.findByName("Full-Time");
+        if(matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimeEvent, null) > 0)
+        {
+            MatchDetail matchDetailFullTime = matchDetailRepository.findByEvent(fullTimeEvent);
+            if(matchDetailFullTime.getEventTime() < matchDetailDTO.getMinute())
+                throw new Exception(String.format("This is event must be before full-time(%d')", matchDetailFullTime.getEventTime()));
+        }
+
         PlayerStat playerStat = playerStatRepository.findById(matchDetailDTO.getPlayerStat()).get();
         ClubStat clubStat = clubStatRepository.findById(matchDetailDTO.getClubStat()).get();
         MatchDetail matchDetail = createNewEventMatch(playerStat, clubStat, event, match, matchDetailDTO.getMinute());
-        matchDetailRepository.save(matchDetail);
+        if(event.getName().equals("Goal"))
+        {
+            ClubStat clubReceiveGoal = match.getAwayClubStat().equals(clubStat) ? match.getHomeClubStat() : match.getAwayClubStat();
+            clubReceiveGoal.setGoalReceived(clubReceiveGoal.getGoalReceived() + 1);
+            clubStatRepository.save(clubReceiveGoal);
+        }
+        if(matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimeEvent, null) > 0 && event.getName().equals("Goal"))
+        {
+            int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimeEvent, match.getHomeClubStat());
+            int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimeEvent, match.getAwayClubStat());
+            ClubStat homeClubStat = match.getHomeClubStat();
+            ClubStat awayClubStat = match.getAwayClubStat();
+            if(homeGoal == awayGoal)
+            {
+                if(clubStat.getId() == homeClubStat.getId())
+                {
+                    homeClubStat.setPoint(homeClubStat.getPoint() - 1 + 3);
+                    homeClubStat.setDraw(homeClubStat.getDraw() - 1);
+                    homeClubStat.setWin(homeClubStat.getWin() + 1);
+                    clubStatRepository.save(homeClubStat);
+                    awayClubStat.setPoint(awayClubStat.getPoint() - 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() - 1);
+                    awayClubStat.setLose(awayClubStat.getLose() + 1);
+                    clubStatRepository.save(awayClubStat);
+                }
+                else
+                {
+                    awayClubStat.setPoint(awayClubStat.getPoint() + 3 - 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() - 1);
+                    awayClubStat.setWin(awayClubStat.getWin() + 1);
+                    clubStatRepository.save(awayClubStat);
+                    homeClubStat.setPoint(homeClubStat.getPoint() - 1);
+                    homeClubStat.setDraw(homeClubStat.getDraw() - 1);
+                    homeClubStat.setLose(homeClubStat.getLose() + 1);
+                    clubStatRepository.save(homeClubStat);
+                }
+            }
+            else if(homeGoal - awayGoal == 1)
+            {
+                if(clubStat.getId() == awayClubStat.getId())
+                {
+                    homeClubStat.setPoint(homeClubStat.getPoint() - 3 + 1);
+                    homeClubStat.setWin(homeClubStat.getWin() - 1);
+                    homeClubStat.setDraw(homeClubStat.getDraw() + 1);
+                    clubStatRepository.save(homeClubStat);
+                    awayClubStat.setPoint(awayClubStat.getPoint() + 1);
+                    awayClubStat.setLose(awayClubStat.getLose() - 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() + 1);
+                    clubStatRepository.save(awayClubStat);
+                }
+            }
+            else if(awayGoal - homeGoal == 1)
+            {
+                if(clubStat.getId() == homeClubStat.getId())
+                {
+                    awayClubStat.setPoint(awayClubStat.getPoint() -3 + 1);
+                    awayClubStat.setWin(awayClubStat.getWin() - 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() + 1);
+                    clubStatRepository.save(awayClubStat);
+                    homeClubStat.setPoint(homeClubStat.getPoint() + 1);
+                    homeClubStat.setLose(homeClubStat.getLose() - 1);
+                    homeClubStat.setDraw(homeClubStat.getDraw() + 1);
+                    clubStatRepository.save(homeClubStat);
+                }
+            }
+            updateTable(match.getSeason());
+        }
+        return matchDetailRepository.save(matchDetail);
     }
 
     private MatchDetail createNewEventMatch(PlayerStat playerStat, ClubStat clubStat, Event event, Match match, int eventTime) {
@@ -176,4 +262,108 @@ public class MatchDetailService implements IMatchDetailService {
         return statistics;
     }
 
+    public void updateTable(Season season){
+        List<ClubStat> clubStats = clubStatRepository.findBySeason(season);
+        Collections.sort(clubStats, new Comparator<ClubStat>() {
+            @Override
+            public int compare(ClubStat o1, ClubStat o2) {
+                if(o1.getPoint() == o2.getPoint())
+                {
+                    if(o1.getGoalTaken() - o1.getGoalReceived() == o2.getGoalTaken() - o2.getGoalReceived())
+                    {
+                        if(o1.getRedCard() == o2.getRedCard())
+                        {
+                            if(o1.getYellowCard() == o2.getYellowCard())
+                            {
+                                return o1.getFoul() - o2.getFoul();
+                            }
+                            return o1.getYellowCard() - o2.getYellowCard();
+                        }
+                        return o1.getRedCard() - o2.getRedCard();
+                    }
+                    return (o2.getGoalTaken() - o2.getGoalReceived()) - (o1.getGoalTaken() - o1.getGoalReceived());    
+                }
+                return o2.getPoint() - o1.getPoint();
+            } 
+        });
+        for(int i = 0; i < clubStats.size(); i++)
+        {
+            clubStats.get(i).setRank(i + 1);
+            clubStatRepository.save(clubStats.get(i));
+        }
+    }
+
+    @Override
+    public void deleteByMatchDetail(Long matchDetailId) throws Exception {
+        MatchDetail matchDetail = matchDetailRepository.findById(matchDetailId).get();
+        Match match = matchDetail.getMatch();
+        Event fullTimEvent = eventRepository.findByName("Full-Time");
+        Event goalEvent = eventRepository.findByName("Goal");
+        if(matchDetail.getEvent().equals(goalEvent))
+        {
+            ClubStat clubReceiveGoal = match.getAwayClubStat().equals(matchDetail.getClubStat()) ? match.getHomeClubStat() : match.getAwayClubStat();
+            clubReceiveGoal.setGoalReceived(clubReceiveGoal.getGoalReceived() - 1);
+            clubStatRepository.save(clubReceiveGoal);
+        }
+        if(matchDetail.getEvent().equals(goalEvent) && matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimEvent, null) > 0)
+        {
+            ClubStat homeClubStat = match.getHomeClubStat();
+            ClubStat awayClubStat = match.getAwayClubStat();
+            int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, homeClubStat);
+            int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, awayClubStat);
+            if(homeGoal == awayGoal)
+            {
+                if(matchDetail.getClubStat().equals(homeClubStat))
+                {
+                    homeClubStat.setDraw(homeClubStat.getDraw() - 1);
+                    homeClubStat.setLose(homeClubStat.getLose() + 1);
+                    homeClubStat.setPoint(homeClubStat.getPoint() - 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() - 1);
+                    awayClubStat.setWin(awayClubStat.getWin() + 1);
+                    awayClubStat.setPoint(awayClubStat.getPoint() -1 + 3);
+                }
+                else
+                {
+                    awayClubStat.setDraw(awayClubStat.getDraw() - 1);
+                    awayClubStat.setLose(awayClubStat.getLose() + 1);
+                    awayClubStat.setPoint(awayClubStat.getPoint() - 1);
+                    homeClubStat.setDraw(homeClubStat.getDraw() - 1);
+                    homeClubStat.setWin(homeClubStat.getWin() + 1);
+                    homeClubStat.setPoint(homeClubStat.getPoint() - 1 + 3);
+                }
+            }
+            else if(homeGoal - awayGoal == 1)
+            {
+                if(matchDetail.getClubStat().equals(homeClubStat))
+                {
+                    awayClubStat.setDraw(awayClubStat.getDraw() + 1);
+                    awayClubStat.setLose(awayClubStat.getLose() - 1);
+                    awayClubStat.setPoint(awayClubStat.getPoint() + 1);
+                    homeClubStat.setDraw(homeClubStat.getDraw() + 1);
+                    homeClubStat.setWin(homeClubStat.getWin() - 1);
+                    homeClubStat.setPoint(homeClubStat.getPoint() + 1 - 3);
+                }
+            }
+            else if(awayGoal - homeGoal == 1)
+            {
+                if(matchDetail.getClubStat().equals(awayClubStat))
+                {
+                    homeClubStat.setDraw(homeClubStat.getDraw() + 1);
+                    homeClubStat.setLose(homeClubStat.getLose() - 1);
+                    homeClubStat.setPoint(homeClubStat.getPoint() + 1);
+                    awayClubStat.setDraw(awayClubStat.getDraw() + 1);
+                    awayClubStat.setWin(awayClubStat.getWin() - 1);
+                    awayClubStat.setPoint(awayClubStat.getPoint() + 1 - 3);
+                }
+            }
+            updateTable(matchDetail.getMatch().getSeason());
+        }
+        matchDetailRepository.delete(matchDetail);
+        return;
+    }
+
+    @Override
+    public MatchDetail getMatchDetailById(Long matchDetailId) {
+        return matchDetailRepository.findById(matchDetailId).get();
+    }
 }

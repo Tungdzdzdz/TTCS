@@ -23,6 +23,7 @@ public class ClubCoachService implements IClubCoachService{
     private final ClubCoachRepository clubCoachRepository;
     private final SeasonRepository seasonRepository;
     private final ClubRepository clubRepository;
+    private final CoachRepository coachRepository;
     // private final ClubRepository clubRepository;
     // private final CoachRepository coachRepository;
     @Override
@@ -39,6 +40,19 @@ public class ClubCoachService implements IClubCoachService{
         Season season = seasonRepository.findById(seasonId).orElseThrow(() -> new DataNotFoundException("Season not found"));
         List<ClubCoach> clubCoach = clubCoachRepository.findByClubAndSeason(club, season);
         return clubCoach.get(0).getCoach(); 
+    }
+    @Override
+    public ClubCoach getClubCoachByCoachAndSeason(int coachId, int seasonId) throws DataNotFoundException {
+        Coach coach = coachRepository.findById(coachId).orElseThrow(() -> new DataNotFoundException("Coach not found"));
+        Season season = seasonRepository.findById(seasonId).orElseThrow(() -> new DataNotFoundException("Season not found"));
+        ClubCoach clubCoach = clubCoachRepository.findByCoachAndSeason(coach, season);
+        return clubCoach;   
+    }
+    @Override
+    public List<Season> getSeasonByCoach(int coachId) {
+        Coach coach = coachRepository.findById(coachId).get();
+        List<ClubCoach> clubCoach = clubCoachRepository.findByCoach(coach);
+        return clubCoach.stream().map(e -> e.getSeason()).toList();
     }
     // @Override
     // public void createClubCoach(int seasonId) {

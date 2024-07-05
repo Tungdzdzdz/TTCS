@@ -78,10 +78,13 @@ public class UserService implements IUserService{
         return userRepository.findAll();
     }
     @Override
-    public void updateUser(UserDTO userDTO) throws DataNotFoundException {
+    public void updateUser(UserDTO userDTO) throws Exception {
         User user = userRepository.findById(userDTO.getId()).orElseThrow(() -> new DataNotFoundException("User is not found!"));
         user.setEmail(userDTO.getEmail());
-        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        if(userDTO.getPassword().length() > 8)
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        else if(userDTO.getPassword().length() > 0 && userDTO.getPassword().length() < 8)
+            throw new Exception("Password length must be greater than 7");
         user.setUsername(userDTO.getUsername());
         user.setRole(roleRepository.findById(userDTO.getRoleId()).orElseThrow(() -> new DataNotFoundException("Role is not found!")));
         userRepository.save(user);

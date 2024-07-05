@@ -95,9 +95,12 @@ public class PlayerStatService implements IPlayerStatService {
     public List<Integer> getStatMatch(int playerStatId) throws DataNotFoundException {
         List<Long> matches = squadRepository.findAppearanceMatchByPlayerStat(playerStatId, true);
         Event goalEvent = eventRepository.findById(1).orElseThrow(() -> new DataNotFoundException("Event not found"));
+        Event fullTimEvent = eventRepository.findByName("Full-Time");
         List<Integer> stats = new ArrayList<>(Arrays.asList(0, 0, 0));
         for(Long x : matches) {
             Match match = matchRepository.findById(x).orElseThrow(() -> new DataNotFoundException("Match not found"));
+            if(matchDetailRepository.countByMatchAndEventAndClubStat(match, fullTimEvent, null) == 0)
+                continue;
             int homeGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getHomeClubStat());
             int awayGoal = matchDetailRepository.countByMatchAndEventAndClubStat(match, goalEvent, match.getAwayClubStat());
             if(homeGoal > awayGoal)
@@ -107,7 +110,6 @@ public class PlayerStatService implements IPlayerStatService {
             else
                 stats.set(2, stats.get(2) + 1);
         }
-        System.out.println(stats.size());
         return stats;
     }
 
@@ -138,5 +140,14 @@ public class PlayerStatService implements IPlayerStatService {
     @Override
     public void deletePlayerStat(Integer playerStatId) throws DataNotFoundException {
         playerStatRepository.deleteById(playerStatId);
+    }
+
+    @Override
+    public List<Season> getSeasonByPlayer(int playerId) throws DataNotFoundException {
+        Player player = playerRepository
+                .findById(playerId)
+                .orElseThrow(() -> new DataNotFoundException("Player not found"));
+        List<PlayerStat> playerStats = playerStatRepository.findByPlayer(player);
+        return playerStats.stream().map(PlayerStat::getSeason).toList();
     }       
 }

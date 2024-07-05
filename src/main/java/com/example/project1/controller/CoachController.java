@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class CoachController {
     private final ClubCoachService clubCoachService;
     private final CoachService coachService;
-    @GetMapping("/seasonId")
+    @GetMapping("/{seasonId}")
     public ResponseEntity<?> getCoachBySeason(
         @PathVariable(name = "seasonId") int seasonId
     ) {
@@ -59,10 +59,25 @@ public class CoachController {
     }
 
     @GetMapping("/clubCoach/{clubId}/{seasonId}")
-    public ResponseEntity<?> createClubCoach(
+    public ResponseEntity<?> getClubCoach(
         @PathVariable Integer seasonId,
         @PathVariable Integer clubId
     ) throws DataNotFoundException {
         return ResponseEntity.ok().body(clubCoachService.getCoachByClubAndSeason(clubId, seasonId));
+    }
+
+    @GetMapping("/{coachId}/season/{seasonId}")
+    public ResponseEntity<?> getCoachBySeasonAndCoach(
+        @PathVariable Integer coachId,
+        @PathVariable Integer seasonId
+    ) throws DataNotFoundException {
+        return ResponseEntity.ok().body(clubCoachService.getClubCoachByCoachAndSeason(coachId, seasonId));
+    }
+
+    @GetMapping("/{coachId}/season")
+    public ResponseEntity<?> getSeasonByCoach(
+        @PathVariable Integer coachId
+    ) throws DataNotFoundException {
+        return ResponseEntity.ok().body(clubCoachService.getSeasonByCoach(coachId));
     }
 }

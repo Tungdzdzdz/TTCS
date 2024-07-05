@@ -22,4 +22,6 @@ public interface IMatchService {
     void createFixtures(List<ClubStat> clubStats, Season season) throws DataNotFoundException;
     void createFixture(ClubStat home, ClubStat away, Formation homeFormation, Formation awayFormation, Season season, LocalDateTime matchDate, Integer week) throws DataNotFoundException;
     void deleteFixtures(List<ClubStat> clubStats, Season season) throws DataNotFoundException;
+    void createFollower(Long matchId, String username);
+    void deleteFollower(Long matchId, String username);
 }

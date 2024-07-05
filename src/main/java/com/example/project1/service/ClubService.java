@@ -5,6 +5,7 @@ import com.example.project1.Exception.DataNotFoundException;
 import com.example.project1.Model.Club;
 import com.example.project1.Model.Location;
 import com.example.project1.repository.ClubRepository;
+import com.example.project1.repository.ClubStatRepository;
 import com.example.project1.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.List;
 public class ClubService implements IClubService{
     private final ClubRepository clubRepository;
     private final LocationRepository locationRepository;
+    private final ClubStatRepository clubStatRepository;
     @Override
     public void createClub(ClubDTO clubDTO) throws Exception {
         clubRepository.save(mapper(clubDTO));
@@ -66,6 +68,11 @@ public class ClubService implements IClubService{
 
     @Override
     public void deleteClub(Integer clubId) throws DataNotFoundException {
-        clubRepository.deleteById(clubId);
+        Club club = clubRepository
+                .findById(clubId)
+                .orElseThrow(() -> new DataNotFoundException("Club not found"));
+        if(clubStatRepository.existsByClub(club))
+            throw new DataNotFoundException("Club cannot be deleted because it has club stats");
+        clubRepository.delete(club);
     }
 }

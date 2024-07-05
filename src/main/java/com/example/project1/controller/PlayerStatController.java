@@ -85,4 +85,5 @@ public class PlayerStatController {
     {
         return ResponseEntity.ok().body(playerStatService.getAllPlayerStatsByClubIdAndSeasonId(clubId, seasonId));
     }
+
 }

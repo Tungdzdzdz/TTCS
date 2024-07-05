@@ -25,6 +25,14 @@ public class User implements UserDetails {
     @ManyToOne
     private Role role;
 
+    @ManyToMany
+    @JoinTable(
+            name = "followers",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "match_id")
+    )
+    private List<Match> matches;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_"+role.getName()));

@@ -25,7 +25,7 @@ public class WebSecurityConfig {
                 .sessionManagement(httpSecuritySessionManagementConfigurer -> httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry -> {
                     authorizationManagerRequestMatcherRegistry
-                            .requestMatchers("/api/v1/auth/**")
+                            .requestMatchers("/api/v1/auth/**", "/ws")
                             .permitAll()
                             .anyRequest()
                             .permitAll();

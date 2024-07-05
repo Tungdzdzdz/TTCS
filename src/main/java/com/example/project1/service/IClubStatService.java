@@ -11,6 +11,7 @@ import java.util.List;
 public interface IClubStatService {
     void createClubStat(ClubStatDTO clubStatDTO) throws DataNotFoundException;
     ClubStat createClubStat(Club club, Season season) throws DataNotFoundException;
+    void deleteClubStat(int clubId, int seasonId) throws DataNotFoundException;
     List<ClubStat> getClubStatsByStartSeasonYear(int startSeasonYear) throws DataNotFoundException;
     List<ClubStat> getClubStatsBySeasonId(int seasonId) throws DataNotFoundException;
     ClubStat getClubStat(int clubId, int seasonId) throws DataNotFoundException;

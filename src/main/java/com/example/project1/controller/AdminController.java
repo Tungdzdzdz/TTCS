@@ -1,8 +1,15 @@
 package com.example.project1.controller;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import javax.management.Notification;
+
+import org.aspectj.weaver.ast.Not;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,18 +30,29 @@ import com.example.project1.DTO.SeasonDTO;
 import com.example.project1.DTO.SquadDTO;
 import com.example.project1.DTO.UserDTO;
 import com.example.project1.Exception.DataNotFoundException;
+import com.example.project1.Model.ClubStat;
 import com.example.project1.Model.Coach;
+import com.example.project1.Model.Match;
+import com.example.project1.Model.MatchDetail;
+import com.example.project1.Model.Notifycation;
 import com.example.project1.Model.Squad;
+import com.example.project1.Model.User;
 import com.example.project1.Response.ErrorResponse;
+import com.example.project1.Response.MatchDetailResponse;
+import com.example.project1.repository.ClubStatRepository;
 import com.example.project1.service.ClubService;
+import com.example.project1.service.ClubStatService;
 import com.example.project1.service.CoachService;
 import com.example.project1.service.MatchDetailService;
 import com.example.project1.service.MatchService;
+import com.example.project1.service.NotifycationService;
 import com.example.project1.service.PlayerService;
 import com.example.project1.service.SeasonService;
 import com.example.project1.service.SquadService;
 import com.example.project1.service.UserService;
 
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -50,6 +68,10 @@ public class AdminController {
     private final SeasonService seasonService;
     private final SquadService squadService;
     private final MatchDetailService matchDetailService;
+    private final NotifycationService notifycationService;
+    private final ClubStatService clubStatService;
+    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final EntityManager entityManager;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/user")
@@ -73,7 +95,7 @@ public class AdminController {
 
     @PutMapping("/user")
     public ResponseEntity<?> updateUser(
-            @RequestBody UserDTO userDTO) throws DataNotFoundException {
+            @RequestBody UserDTO userDTO) throws Exception {
 
         userService.updateUser(userDTO);
         return ResponseEntity.ok().body("User updated successfully");
@@ -190,11 +212,17 @@ public class AdminController {
     public ResponseEntity<?> updateMatchTime(
             @RequestBody MatchDTO matchDTO) throws DataNotFoundException {
         // try {
-            matchService.updateMatchTime(matchDTO);
-            return ResponseEntity.ok().body("Match time is updated successfully");
-        // } catch (Exception e) {
-        //     return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
-        // }
+        matchService.updateMatchTime(matchDTO);
+        Match match = matchService.getMatchById(matchDTO.getId());
+        int seasonId = match.getSeason().getId();
+        int matchWeek = match.getWeek();
+        simpMessagingTemplate.convertAndSend(String.format("/topic/match/fixture/%d", match.getId()), match);
+        simpMessagingTemplate.convertAndSend(String.format("/topic/fixture/season/%d/week/%d", seasonId, matchWeek), matchService.getMatchByWeek(matchWeek, seasonId));
+        for(User x : match.getUsers())
+        {
+            simpMessagingTemplate.convertAndSend(String.format("/topic/notifycation/user/%d", x.getId()), notifycationService.createNotifycation(match, x, String.format("Update time for match: %s vs %s", match.getHomeClubStat().getClub().getName(), match.getAwayClubStat().getClub().getName()), "Update Time"));
+        }
+        return ResponseEntity.ok().body("Match time is updated successfully");
     }
 
     @PostMapping("/season")
@@ -228,20 +256,71 @@ public class AdminController {
 
     @PutMapping("/squad")
     public ResponseEntity<?> updateSquad(
-            @RequestBody List<SquadDTO> squadDTO
-    ) throws DataNotFoundException 
-    {
+            @RequestBody List<SquadDTO> squadDTO) throws DataNotFoundException {
         squadService.updateSquads(squadDTO);
         return ResponseEntity.ok().body("Squad is updated successfully");
     }
 
     @PostMapping("/matchDetail/match/{matchId}")
+    @Transactional
     public ResponseEntity<?> createMatchDetail(
             @PathVariable Long matchId,
-            @RequestBody MatchDetailDTO matchDetailDTO
-    ) throws DataNotFoundException 
-    {
-        matchDetailService.createMatchDetail(matchId, matchDetailDTO);
+            @RequestBody MatchDetailDTO matchDetailDTO) throws Exception {
+        MatchDetail matchDetail = matchDetailService.createMatchDetail(matchId, matchDetailDTO);
+        entityManager.flush();
+        Match match = matchService.getMatchById(matchId);
+        Integer seasonId = match.getSeason().getId();
+        Integer currentWeek = match.getWeek();
+        simpMessagingTemplate.convertAndSend(String.format("/topic/result/season/%d/week/%d", seasonId, currentWeek),
+                matchDetailService.getResultByWeek(currentWeek, seasonId));
+        simpMessagingTemplate.convertAndSend(String.format("/topic/match/%d", matchId),
+                new MatchDetailResponse(matchDetail, MatchDetailResponse.Type.CREATE));
+        simpMessagingTemplate.convertAndSend(String.format("/topic/match/result/%d", matchId),
+                matchDetailService.getResultByMatch(matchId));
+        List<ClubStat> clubStats = clubStatService.getTableBySeason(match.getSeason().getId())
+                .stream()
+                .map(cs -> {
+                    entityManager.refresh(cs);
+                    return cs;
+                })
+                .toList();
+        simpMessagingTemplate.convertAndSend(String.format("/topic/clubstat/%d", match.getSeason().getId()), clubStats);
+        for (User u : match.getUsers()) {
+            Notifycation notifycation = notifycationService.createNotifycation(match, u, matchDetail);
+            simpMessagingTemplate.convertAndSend(String.format("/topic/notifycation/user/%d", u.getId()), notifycation);
+        }
         return ResponseEntity.ok().body("Match detail is created successfully");
+    }
+
+    @DeleteMapping("/matchDetail/{matchDetailId}")
+    @Transactional
+    public ResponseEntity<?> deleteMatchDetail(
+            @PathVariable Long matchDetailId) throws Exception {
+        MatchDetail matchDetail = matchDetailService.getMatchDetailById(matchDetailId);
+        Long matchId = matchDetail.getMatch().getId();
+        matchDetailService.deleteByMatchDetail(matchDetailId);
+        entityManager.flush();
+        Match match = matchService.getMatchById(matchId);
+        Integer seasonId = match.getSeason().getId();
+        Integer currentWeek = match.getWeek();
+        simpMessagingTemplate.convertAndSend(String.format("/topic/result/season/%d/week/%d", seasonId, currentWeek),
+                matchDetailService.getResultByWeek(currentWeek, seasonId));
+        simpMessagingTemplate.convertAndSend(String.format("/topic/match/%d", match.getId()),
+                new MatchDetailResponse(matchDetail, MatchDetailResponse.Type.DELETE));
+        simpMessagingTemplate.convertAndSend(String.format("/topic/match/result/%d", match.getId()),
+                matchDetailService.getResultByMatch(match.getId()));
+        List<ClubStat> clubStats = clubStatService.getTableBySeason(match.getSeason().getId())
+                .stream()
+                .map(cs -> {
+                    entityManager.refresh(cs);
+                    return cs;
+                })
+                .toList();
+        simpMessagingTemplate.convertAndSend(String.format("/topic/clubstat/%d", match.getSeason().getId()),clubStats);
+        for (User u : match.getUsers()) {
+            Notifycation notifycation = notifycationService.createNotifycation(match, u, matchDetail);
+            simpMessagingTemplate.convertAndSend(String.format("/topic/notifycation/user/%d", u.getId()), notifycation);
+        }
+        return ResponseEntity.accepted().build();
     }
 }

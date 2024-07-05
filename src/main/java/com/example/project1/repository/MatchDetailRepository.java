@@ -21,4 +21,7 @@ public interface MatchDetailRepository extends JpaRepository<MatchDetail, Long>{
     Optional<MatchDetail> findLastMatchDetail();
 
     List<MatchDetail> findByMatchOrderByEventTimeAsc(Match match);  
+
+    int countByMatchAndEventTimeGreaterThan(Match match, int minute);
+    MatchDetail findByEvent(Event fullTimeEvent);
 }

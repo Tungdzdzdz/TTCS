@@ -19,6 +19,7 @@ import com.example.project1.Model.Player;
 import com.example.project1.Model.PlayerStat;
 import com.example.project1.Model.Season;
 import com.example.project1.Model.Squad;
+import com.example.project1.Model.User;
 import com.example.project1.repository.ClubRepository;
 import com.example.project1.repository.ClubStatRepository;
 import com.example.project1.repository.FormationRepository;
@@ -27,6 +28,7 @@ import com.example.project1.repository.MatchRepository;
 import com.example.project1.repository.PlayerStatRepository;
 import com.example.project1.repository.SeasonRepository;
 import com.example.project1.repository.SquadRepository;
+import com.example.project1.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,6 +43,7 @@ public class MatchService implements IMatchService {
     private final SquadRepository squadRepository;
     private final PlayerStatRepository playerStatRepository;
     private final MatchDetailRepository matchDetailRepository;
+    private final UserRepository userRepository;
 
     @Override
     public void createMatch(MatchDTO matchDTO) throws DataNotFoundException {
@@ -165,9 +168,7 @@ public class MatchService implements IMatchService {
         LocalDate[] dates = {
                 date,
                 date.plusDays(1),
-                date.plusDays(2),
-                date.minusDays(1),
-                date.minusDays(2)
+                date.plusDays(2)
         };
         LocalTime[] localTimes = {
                 LocalTime.of(14, 0),
@@ -189,14 +190,14 @@ public class MatchService implements IMatchService {
                         formation,
                         formation,
                         season,
-                        matchDates.get(random.nextInt(20)).plusDays((i) * 7), i + 1);
+                        matchDates.get(random.nextInt(12)).plusDays((i) * 7), i + 1);
                 createFixture(
                         clubStats.get(clubStats.size() - 1 - j),
                         clubStats.get(j),
                         formation,
                         formation,
                         season,
-                        matchDates.get(random.nextInt(20)).plusDays((i+clubStats.size()-1) * 7), (i + 1) + clubStats.size() - 1);
+                        matchDates.get(random.nextInt(12)).plusDays((i+clubStats.size()-1) * 7), (i + 1) + clubStats.size() - 1);
             }
             ClubStat temp = clubStats.get(1);
             clubStats.remove(1);
@@ -227,5 +228,29 @@ public class MatchService implements IMatchService {
                 continue;
             matchRepository.deleteAll(matches);
         }
+    }
+
+    public Match getMatchById(Long matchId) {
+        return matchRepository.findById(matchId).get();
+    }
+
+    @Override
+    public void createFollower(Long matchId, String username) {
+        Match match = matchRepository.findById(matchId).get();
+        User user = userRepository.findByUsername(username).get();
+        match.getUsers().add(user);
+        user.getMatches().add(match);
+        matchRepository.save(match);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void deleteFollower(Long matchId, String username) {
+        Match match = matchRepository.findById(matchId).get();
+        User user = userRepository.findByUsername(username).get();
+        match.getUsers().remove(user);
+        user.getMatches().remove(match);
+        matchRepository.save(match);
+        userRepository.save(user);
     }
 }

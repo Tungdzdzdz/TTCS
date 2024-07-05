@@ -5,6 +5,7 @@ import java.security.Principal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,7 +68,7 @@ public class MatchController {
 
     @GetMapping("/result/last")
     public ResponseEntity<?> getLastResultMatch(
-        @RequestParam(name = "seasonId", required = false, defaultValue = "1") int seasonId
+        @RequestParam(name = "seasonId", required = false, defaultValue = "1") Integer seasonId
     )
     {
         try {
@@ -98,5 +99,23 @@ public class MatchController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getLocalizedMessage(), e.getMessage()));
         }
+    }
+
+    @PostMapping("/follow")
+    public ResponseEntity<?> follow(
+        @RequestParam(name = "matchId") Long matchId,
+        Principal principal
+    ) {
+        matchService.createFollower(matchId, principal.getName());
+        return ResponseEntity.ok("Create follower successfully");
+    }
+
+    @DeleteMapping("/follow")
+    public ResponseEntity<?> unfollow(
+        @RequestParam(name = "matchId") Long matchId,
+        Principal principal
+    ) {
+        matchService.deleteFollower(matchId, principal.getName());
+        return ResponseEntity.ok("Delete follower successfully");
     }
 }

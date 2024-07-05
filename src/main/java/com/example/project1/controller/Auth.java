@@ -2,6 +2,7 @@ package com.example.project1.controller;
 
 import com.example.project1.DTO.UserDTO;
 import com.example.project1.DTO.UserLogin;
+import com.example.project1.Model.User;
 import com.example.project1.Response.ErrorResponse;
 import com.example.project1.Response.Token;
 import com.example.project1.service.UserService;
@@ -62,7 +63,8 @@ public class Auth {
                         .toList();
                 return ResponseEntity.badRequest().body(errorList);
             }
-            Token token = new Token(userService.login(userLogin));
+            User user = userService.getUserByUsername(userLogin.getUsername());
+            Token token = new Token(userService.login(userLogin), user.getRole().getName());
             return ResponseEntity.ok(token);
         }
         catch (Exception e)
@@ -89,7 +91,8 @@ public class Auth {
                         .toList();
                 return ResponseEntity.badRequest().body(errorList);
             }
-            Token token = new Token(userService.login(userLogin));
+            User user = userService.getUserByUsername(userLogin.getUsername());
+            Token token = new Token(userService.loginAdmin(userLogin), user.getRole().getName());
             return ResponseEntity.ok(token);
         }
         catch (Exception e)

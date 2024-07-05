@@ -20,4 +20,5 @@ public interface IPlayerStatService {
     PlayerStat getPlayerStat(int playerId, int seasonId) throws DataNotFoundException;
     PlayerStat getRandomPlayerStatBySeason(int seasonId) throws DataNotFoundException;
     List<Integer> getStatMatch(int playerStatId) throws DataNotFoundException; 
+    List<Season> getSeasonByPlayer(int playerId) throws DataNotFoundException;
 }

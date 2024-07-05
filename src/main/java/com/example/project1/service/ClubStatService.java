@@ -20,6 +20,7 @@ public class ClubStatService implements IClubStatService {
 	private final ClubStatRepository clubStatRepository;
 	private final ClubRepository clubRepository;
 	private final SeasonRepository seasonRepository;
+	private final MatchDetailService matchDetailService;
 
 	@Override
 	public void createClubStat(ClubStatDTO clubStatDTO) throws DataNotFoundException {
@@ -88,6 +89,7 @@ public class ClubStatService implements IClubStatService {
 		Season season = seasonRepository
 				.findById(seasonId)
 				.orElseThrow(() -> new DataNotFoundException("Season not found"));
+		matchDetailService.updateTable(season);
 		return clubStatRepository.findBySeasonOrderByRank(season);
 	}
 
@@ -98,5 +100,15 @@ public class ClubStatService implements IClubStatService {
 		clubStat.setSeason(season);
 		clubStat.setDefault();
 		return clubStatRepository.save(clubStat);
+	}
+
+	@Override
+	public void deleteClubStat(int clubId, int seasonId) throws DataNotFoundException {
+		Club club = clubRepository
+				.findById(clubId)
+				.orElseThrow(() -> new DataNotFoundException("Club not found"));
+		Season season = seasonRepository.findById(seasonId)
+				.orElseThrow(() -> new DataNotFoundException("Season not found"));
+		clubStatRepository.deleteByClubAndSeason(club, season);
 	}
 }

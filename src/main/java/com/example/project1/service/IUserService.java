@@ -13,7 +13,7 @@ public interface IUserService {
     String login(UserLogin userLogin) throws Exception;
     String loginAdmin(UserLogin userLogin) throws Exception;
     List<User> getAllUsers() throws DataNotFoundException;
-    void updateUser(UserDTO userDTO) throws DataNotFoundException;
+    void updateUser(UserDTO userDTO) throws DataNotFoundException, Exception;
     void deleteUser(Integer id) throws DataNotFoundException;
     User getUserByUsername(String username) throws DataNotFoundException;
 }

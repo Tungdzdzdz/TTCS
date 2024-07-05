@@ -6,6 +6,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Data
 @Entity
 @Table(name = "matches")
@@ -27,4 +29,12 @@ public class Match {
     private int week;
     @ManyToOne
     private Season season;
+
+    @ManyToMany(mappedBy = "matches")
+    private List<User> users;
+
+    @JsonIgnoreProperties({"matches"})
+    public List<User> getUsers() {
+        return users;
+    }
 }

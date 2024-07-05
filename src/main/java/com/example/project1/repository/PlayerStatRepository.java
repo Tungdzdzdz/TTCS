@@ -23,4 +23,5 @@ public interface PlayerStatRepository extends JpaRepository<PlayerStat, Integer>
     List<PlayerStat> findRandomOutfieldPlayer(int playerId, int clubId);
     @Query(nativeQuery = true, value = "SELECT TOP 1 * FROM player_stats WHERE season_id = ?1 ORDER BY NEWID()")
     PlayerStat findRandomPlayerStatBySeasonId(int seasonId);
+    List<PlayerStat> findByPlayer(Player player);
 }

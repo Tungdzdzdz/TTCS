@@ -78,7 +78,7 @@ public class SquadService implements ISquadService{
         squad.setClubStat(clubStat);
         squad.setPlayerStat(playerStat);
         squad.setType(squadDTO.isType());
-        squad.setInField(false);
+        squad.setInField(squadDTO.isType());
         return squad;
     }
 
